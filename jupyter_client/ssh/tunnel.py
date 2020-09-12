@@ -10,12 +10,15 @@ zeromq connections.
 import atexit
 import os
 import re
+import shutil
 import signal
 import socket
 import sys
 import warnings
 from getpass import getpass, getuser
 from multiprocessing import Process
+
+_openssh_available = shutil.which('ssh') is not None
 
 try:
     with warnings.catch_warnings():
@@ -65,7 +68,7 @@ def try_passwordless_ssh(server, keyfile, paramiko=None):
     If paramiko is None, the default for the platform is chosen.
     """
     if paramiko is None:
-        paramiko = sys.platform == 'win32'
+        paramiko = sys.platform == 'win32' and not _openssh_available
     if not paramiko:
         f = _try_passwordless_openssh
     else:
@@ -155,7 +158,7 @@ def open_tunnel(addr, server, keyfile=None, password=None, paramiko=None, timeou
     ip, rport = addr.split(':')
     rport = int(rport)
     if paramiko is None:
-        paramiko = sys.platform == 'win32'
+        paramiko = sys.platform == 'win32' and not _openssh_available
     if paramiko:
         tunnelf = paramiko_tunnel
     else:
@@ -363,7 +366,7 @@ def _paramiko_tunnel(lport, rport, server, remoteip, keyfile=None, password=None
         sys.exit(255)
 
 
-if sys.platform == 'win32':
+if sys.platform == 'win32' and not _openssh_available:
     ssh_tunnel = paramiko_tunnel
 else:
     ssh_tunnel = openssh_tunnel
